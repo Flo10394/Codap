@@ -30,6 +30,7 @@ extern void UC_GPIO_setOutputPushPullAlternateFunction(GPIO_TypeDef* GPIOx, uint
 
 extern void UC_GPIO_setAlternateFunction(GPIO_TypeDef* GPIOx, uint8_t pin, uint8_t val)
 {
+	MODIFY_REG(GPIOx->MODER, 3 << (2 * pin), 2 << (2 * pin));
 	if(pin > 7)
 	{
 		MODIFY_REG(GPIOx->AFR[1], (0xF << (pin * 4)), ((val & 0xF) << (pin * 4)));
@@ -47,7 +48,7 @@ extern void UC_GPIO_setInputFloating(GPIO_TypeDef* GPIOx, uint8_t pin)
 	CLEAR_BIT(GPIOx->MODER, 1 << ((2*pin) + 1));
 	CLEAR_BIT(GPIOx->PUPDR, 1 << (2*pin));
 	CLEAR_BIT(GPIOx->PUPDR, 1 << ((2*pin) + 1));
-
+	return;
 }
 
 extern void UC_GPIO_setSpeedLow(GPIO_TypeDef* GPIOx, uint8_t pin)
