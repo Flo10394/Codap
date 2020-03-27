@@ -6,7 +6,7 @@
  */
 
 #include <uc_delay.h>
-
+#include <core_cm3.h>
 
 volatile uint32_t us100Ticks = 0;
 
