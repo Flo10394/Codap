@@ -30,7 +30,7 @@ extern void UC_USART_Init(void)
 	UC_GPIO_setSpeedHigh(UART_TX_PORT, UART_TX_PIN);
 	UC_GPIO_setAlternateFunction(UART_TX_PORT, UART_TX_PIN, UART_AF);
 	//RX
-	UC_GPIO_setInputFloating(UART_RX_PORT,UART_RX_PIN);
+//	UC_GPIO_setInputFloating(UART_RX_PORT,UART_RX_PIN);
 	UC_GPIO_setSpeedHigh(UART_RX_PORT, UART_RX_PIN);
 	UC_GPIO_setAlternateFunction(UART_RX_PORT, UART_RX_PIN, UART_AF);
 
@@ -108,7 +108,7 @@ void USART_DMA_RX_ISR(void)
 
 void USART_ISR(void)
 {
-	if(READ_BIT(USART1->SR, 1 << 5)) // if RX Data is received
+	if(READ_BIT(USART->SR, 1u << 5u) != 0) // if RX Data is received
 	{
 		SET_BIT(USART_DMA_RX->CR, 1 << 0); // Enable RX DMA
 		SET_BIT(USART_DMA_RX->CR, 1 << 4); // Enable RX DMA Transfer Complete Interrupt
