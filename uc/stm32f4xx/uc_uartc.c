@@ -5,10 +5,8 @@
  *      Author: Florian
  */
 
-#include <stdio.h>
 #include "uc_gpio.h"
 #include "uc_usart_config.h"
-#include <RTOS.h>
 
 uint8_t rxBuffer[100];
 
@@ -17,21 +15,21 @@ extern void UC_USART_Init(void)
 	//Enable Interrupts
 	NVIC_SetPriority(USART_IRQ, USART_IRQ_PRIO);
 	NVIC_EnableIRQ(USART_IRQ);
-
 	NVIC_SetPriority(USART_DMA_TX_STREAM_IRQ, USART_DMA_STREAM_IRQ_PRIO_TX);
 	NVIC_EnableIRQ(USART_DMA_TX_STREAM_IRQ);
-
-	NVIC_SetPriority(USART_DMA_RX_STREAM_IRQ, USART_DMA_STREAM_IRQ_PRIO_RX);
-	NVIC_EnableIRQ(USART_DMA_RX_STREAM_IRQ);
+	NVIC_SetPriority(USART_DMA_RX_CHANNEL_IRQ, USART_DMA_STREAM_IRQ_PRIO_RX);
+	NVIC_EnableIRQ(USART_DMA_RX_CHANNEL_IRQ);
 
 	// GPIO Settings
 	//TX
-	UC_GPIO_setOutputPushPullAlternateFunction(UART_TX_PORT, UART_TX_PIN);
-	UC_GPIO_setSpeedHigh(UART_TX_PORT, UART_TX_PIN);
+	UC_GPIO_setModeAlternateFunction(UART_TX_PORT, UART_TX_PIN);
+	UC_GPIO_setOutputTypePushPull(UART_TX_PORT, UART_TX_PIN);
+	UC_GPIO_setSpeedVeryHigh(UART_TX_PORT, UART_TX_PIN);
 	UC_GPIO_setAlternateFunction(UART_TX_PORT, UART_TX_PIN, UART_AF);
 	//RX
-//	UC_GPIO_setInputFloating(UART_RX_PORT,UART_RX_PIN);
-	UC_GPIO_setSpeedHigh(UART_RX_PORT, UART_RX_PIN);
+	UC_GPIO_setModeInput(UART_RX_PORT, UART_RX_PIN);
+	UC_GPIO_setPullup(UART_RX_PORT, UART_RX_PIN);
+	UC_GPIO_setSpeedVeryHigh(UART_RX_PORT, UART_RX_PIN);
 	UC_GPIO_setAlternateFunction(UART_RX_PORT, UART_RX_PIN, UART_AF);
 
 	// Baudrate Settings BRR = APB1Clock/(16*Baudrate)
@@ -79,6 +77,7 @@ extern void UC_USART_sendString(const char * str, uint32_t size)
 	return;
 }
 
+
 void USART_DMA_TX_ISR(void)
 {
 	if(READ_BIT(USART_DMA_TX_TCIF_REG, USART_DMA_TX_TCIF_BITMASK)) // If transfer complete interrupt
@@ -90,6 +89,7 @@ void USART_DMA_TX_ISR(void)
 	}
 	return;
 }
+
 
 void USART_DMA_RX_ISR(void)
 {
@@ -108,7 +108,7 @@ void USART_DMA_RX_ISR(void)
 
 void USART_ISR(void)
 {
-	if(READ_BIT(USART->SR, 1u << 5u) != 0) // if RX Data is received
+	if(READ_BIT(USART1->SR, 1 << 5)) // if RX Data is received
 	{
 		SET_BIT(USART_DMA_RX->CR, 1 << 0); // Enable RX DMA
 		SET_BIT(USART_DMA_RX->CR, 1 << 4); // Enable RX DMA Transfer Complete Interrupt
@@ -122,24 +122,3 @@ void USART_ISR(void)
 	}
 	return;
 }
-
-
-#ifdef USE_PRINTF
-#if USE_PRINTF
-
-int _write(int file, char *data, int len)
-{
-    int bytes_written;
-
-    for (bytes_written = 0; bytes_written < len; bytes_written++)
-    {
-       UC_USART_sendString(data, 1);
-        data++;
-        OS_Delayus(10);
-    }
-
-    return bytes_written;
-}
-
-#endif
-#endif
