@@ -15,8 +15,10 @@ extern void UC_USART_Init(void)
 	//Enable Interrupts
 	NVIC_SetPriority(USART_IRQ, USART_IRQ_PRIO);
 	NVIC_EnableIRQ(USART_IRQ);
+
 	NVIC_SetPriority(USART_DMA_TX_STREAM_IRQ, USART_DMA_STREAM_IRQ_PRIO_TX);
 	NVIC_EnableIRQ(USART_DMA_TX_STREAM_IRQ);
+
 	NVIC_SetPriority(USART_DMA_RX_CHANNEL_IRQ, USART_DMA_STREAM_IRQ_PRIO_RX);
 	NVIC_EnableIRQ(USART_DMA_RX_CHANNEL_IRQ);
 
@@ -24,6 +26,7 @@ extern void UC_USART_Init(void)
 	//TX
 	UC_GPIO_setModeAlternateFunction(UART_TX_PORT, UART_TX_PIN);
 	UC_GPIO_setOutputTypePushPull(UART_TX_PORT, UART_TX_PIN);
+	UC_GPIO_setPullup(UART_TX_PORT, UART_TX_PIN);
 	UC_GPIO_setSpeedVeryHigh(UART_TX_PORT, UART_TX_PIN);
 	UC_GPIO_setAlternateFunction(UART_TX_PORT, UART_TX_PIN, UART_AF);
 	//RX
@@ -55,10 +58,9 @@ extern void UC_USART_Init(void)
 	CLEAR_REG(USART_DMA_RX->PAR);
 	USART_DMA_RX->PAR |= (uint32_t)(&USART->DR); //This Address is fixed
 	CLEAR_REG(USART_DMA_RX->M0AR);
-	USART_DMA_RX->M0AR |= (uint32_t)(&rxBuffer);
+	USART_DMA_RX->M0AR |= (uint32_t)(&rxBuffer[0]);
 
 	USART->CR1 |= USART_CR1_UE; // Enable USART
-
 }
 
 extern void UC_USART_sendString(const char * str, uint32_t size)
@@ -108,7 +110,7 @@ void USART_DMA_RX_ISR(void)
 
 void USART_ISR(void)
 {
-	if(READ_BIT(USART1->SR, 1 << 5)) // if RX Data is received
+	if(READ_BIT(USART->SR, 1 << 5)) // if RX Data is received
 	{
 		SET_BIT(USART_DMA_RX->CR, 1 << 0); // Enable RX DMA
 		SET_BIT(USART_DMA_RX->CR, 1 << 4); // Enable RX DMA Transfer Complete Interrupt
