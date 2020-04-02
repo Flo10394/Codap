@@ -10,9 +10,17 @@
 
 #include <stdint.h>
 
-
+/*
+ * \brief	Initializes the USART peripheral and GPIO Pins
+ */
 extern void UC_USART_Init(void);
 
+/*
+ * \brief		transmits a given string or single character
+ *
+ * \param[in]	str		pointer to string or character
+ * \param[in]	size	length of str
+ */
 extern void UC_USART_sendString(const char * str, uint32_t size);
 
 
