@@ -97,7 +97,7 @@ extern void UC_USART_Init(void)
 	CLEAR_REG(UC_USART->CR2);
 	CLEAR_REG(UC_USART->CR3);
 	CLEAR_REG(UC_USART->CR1);
-	UC_USART->CR1 |= (USART_CR1_RXNEIE | USART_CR1_RE | USART_CR1_TE | USART_CR1_SBK);
+	UC_USART->CR1 |= (USART_CR1_RXNEIE | USART_CR1_RE | USART_CR1_TE);
 	UC_USART->CR1 |= USART_CR1_UE; // Enable USART
 
 	OS_Delay(100);
@@ -128,7 +128,7 @@ extern void UC_USART_sendString(const char * str, uint32_t size)
 	return;
 }
 
-void USART_ISR(void)
+void UC_USART_ISR(void)
 {
 	if(READ_BIT(UC_USART->SR, USART_SR_RXNE)) // if RX Data is received
 	{
@@ -158,8 +158,16 @@ void USART_ISR(void)
 	return;
 }
 
+
 #ifdef UC_USART_USE_PRINTF
-#if UC_USART_USE_PRINTF == 1
+#if UC_USART_USE_PRINTF
+
+int _write(int file, char *data, int len)
+{
+	UC_USART_sendString(data, len);
+	OS_Delay(50);
+    return 0;
+}
 
 #endif
 #endif
