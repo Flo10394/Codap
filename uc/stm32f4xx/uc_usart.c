@@ -149,9 +149,11 @@ void UC_USART_ISR(void)
 		if(UTIL_U8_RINGBUFFER_isEmpty(&tx_ringbuffer))
 		{
 			UC_USART->CR1 &= ~USART_CR1_TXEIE; // Disable TXE Interrupt if tx buffer is empty
+			CLEAR_BIT(UC_USART->CR1, USART_CR1_TXEIE); // Disable TXE interrupt
 		}
 		else
 		{
+
 			UC_USART->DR = UTIL_U8_RINGBUFFER_get(&tx_ringbuffer);
 		}
 	}
@@ -170,9 +172,16 @@ void UC_USART_ISR(void)
 
 int _write(int file, char *data, int len)
 {
-	UC_USART_sendString(data, len);
-	OS_Delay(10);
-    return 0;
+	uint32_t sent = 0;
+	for(uint32_t i = 0; i < len; i++)
+	{
+		UTIL_U8_RINGBUFFER_put(&tx_ringbuffer, (uint8_t)data[sent]);
+		sent++;
+	}
+
+	OS_Delay(1);
+	SET_BIT(UC_USART->CR1, USART_CR1_TXEIE); // Enable Interrupt
+    return sent;
 }
 
 #endif
