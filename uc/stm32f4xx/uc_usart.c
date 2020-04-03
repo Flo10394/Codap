@@ -172,16 +172,8 @@ void UC_USART_ISR(void)
 
 int _write(int file, char *data, int len)
 {
-	uint32_t sent = 0;
-	for(uint32_t i = 0; i < len; i++)
-	{
-		UTIL_U8_RINGBUFFER_put(&tx_ringbuffer, (uint8_t)data[sent]);
-		sent++;
-	}
-
-	OS_Delay(1);
-	SET_BIT(UC_USART->CR1, USART_CR1_TXEIE); // Enable Interrupt
-    return sent;
+	UC_USART_sendString(data, len);
+	return len;
 }
 
 #endif
