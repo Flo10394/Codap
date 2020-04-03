@@ -134,18 +134,19 @@ extern void UC_USART_sendString(const char* str, uint32_t size)
 
 void UC_USART_ISR(void)
 {
+	OS_EnterNestableInterrupt();
 	if(READ_BIT(UC_USART->SR, USART_SR_RXNE)) // if RX Data is received
 	{
-		CLEAR_BIT(UC_USART->SR, USART_SR_RXNE); // Clear Interrupt Flag
-		if(!UTIL_U8_RINGBUFFER_isFull(&tx_ringbuffer))
+		while(READ_BIT(UC_USART->SR, USART_SR_RXNE))
 		{
 			UTIL_U8_RINGBUFFER_put(&rx_ringbuffer, (uint8_t)UC_USART->DR);
 		}
-		SET_BIT(UC_USART->CR1, USART_CR1_IDLEIE); // Enable Idle Interrupt
+		CLEAR_BIT(UC_USART->SR, USART_SR_RXNE); // Clear Interrupt Flag
+		UC_USART_MESSAGE_RECEIVED_CALLBACK();
 	}
 	if(READ_BIT(UC_USART->SR, USART_SR_TXE)) // if transmission complete flag is set
 	{
-		CLEAR_BIT(UC_USART->SR, 1 << 6); // Clear Interrupt Flag
+		CLEAR_BIT(UC_USART->SR, USART_SR_TXE); // Clear Interrupt Flag
 		if(UTIL_U8_RINGBUFFER_isEmpty(&tx_ringbuffer))
 		{
 			UC_USART->CR1 &= ~USART_CR1_TXEIE; // Disable TXE Interrupt if tx buffer is empty
@@ -153,16 +154,10 @@ void UC_USART_ISR(void)
 		}
 		else
 		{
-
 			UC_USART->DR = UTIL_U8_RINGBUFFER_get(&tx_ringbuffer);
 		}
 	}
-	if(READ_BIT(UC_USART->SR, USART_SR_IDLE))
-	{
-		// all data is received
-		CLEAR_BIT(UC_USART->CR1, USART_CR1_IDLEIE); // Disable Idle Interrupt
-	}
-
+	OS_LeaveNestableInterrupt();
 	return;
 }
 
