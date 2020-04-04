@@ -9,6 +9,7 @@
 #define UC_INCLUDE_UC_UART_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /*
  * \brief	Initializes the USART peripheral and GPIO Pins
@@ -28,6 +29,15 @@ extern void UC_USART_Init(uint8_t* tx_databuffer, uint32_t tx_buffersize, uint8_
  */
 extern void UC_USART_sendString(const char * str, uint32_t size);
 
+/*
+ * \brief		writes the oldest received message into the buffer
+ *
+ * \param[in]	buffer	buffer to write the message to
+ * \param[in]	sizer	size of the buffer
+ *
+ * \return		1 if message fits to buffersize, 0 if message does not fit to buffersize
+ */
+extern bool UC_USART_getMessage(char* buffer, uint32_t size);
 
 
 #endif /* UC_INCLUDE_UC_UART_H_ */

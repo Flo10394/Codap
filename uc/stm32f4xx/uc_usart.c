@@ -12,7 +12,6 @@
 						includes
 ***********************************************************/
 #include <stdio.h>
-#include <stdint.h>
 #include <uc_gpio.h>
 #include <uc_usart_config.h>
 #include <RTOS.h>
@@ -59,10 +58,8 @@ UC_USART_RX_BUFFER_SIZE			Set the RX buffer size
 /***********************************************************
 					private variables
 ***********************************************************/
-UTIL_RINGBUFFER_U8 rx_ringbuffer;
-UTIL_RINGBUFFER_U8 tx_ringbuffer;
-
-
+static UTIL_RINGBUFFER_U8 rx_ringbuffer;
+static UTIL_RINGBUFFER_U8 tx_ringbuffer;
 
 /***********************************************************
 				private function declarations
@@ -132,17 +129,39 @@ extern void UC_USART_sendString(const char* str, uint32_t size)
 	return;
 }
 
+extern bool UC_USART_getMessage(char* buffer, uint32_t size)
+{
+	uint32_t dataRead = 0;
+	while(rx_ringbuffer.data[rx_ringbuffer.out] != '\0')
+	{
+		*buffer = UTIL_U8_RINGBUFFER_get(&rx_ringbuffer);
+		buffer++;
+		dataRead++;
+		if(dataRead >= size)
+		{
+			return false;
+		}
+	}
+	*buffer = '\0';
+	return true;
+}
+
 void UC_USART_ISR(void)
 {
 	OS_EnterNestableInterrupt();
 	if(READ_BIT(UC_USART->SR, USART_SR_RXNE)) // if RX Data is received
 	{
-		while(READ_BIT(UC_USART->SR, USART_SR_RXNE))
+		uint8_t data = (uint8_t)(UC_USART->DR & 0xFF);
+		if(data == 0)
 		{
-			UTIL_U8_RINGBUFFER_put(&rx_ringbuffer, (uint8_t)UC_USART->DR);
+			UC_USART_MESSAGE_RECEIVED_CALLBACK();
 		}
+		else
+		{
+			UTIL_U8_RINGBUFFER_put(&rx_ringbuffer, data);
+		}
+
 		CLEAR_BIT(UC_USART->SR, USART_SR_RXNE); // Clear Interrupt Flag
-		UC_USART_MESSAGE_RECEIVED_CALLBACK();
 	}
 	if(READ_BIT(UC_USART->SR, USART_SR_TXE)) // if transmission complete flag is set
 	{
