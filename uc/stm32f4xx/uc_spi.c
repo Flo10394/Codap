@@ -17,7 +17,6 @@
 #include <RTOS.h>
 
 
-
 /***********************************************************
 					configuration options
 ***********************************************************/
@@ -33,15 +32,17 @@
 /***********************************************************
 					   private types
 ***********************************************************/
-
-
+typedef enum
+{
+	UC_SPI_dataWidth8 = 0,
+	UC_SPI_dataWidth16 = 1
+}UC_SPI_dataWidth;
 
 /***********************************************************
 					private variables
 ***********************************************************/
-uint8_t dataToSend = 0;
-
-
+static UC_SPI_dataWidth dataWidth = UC_SPI_dataWidth8;
+static uint8_t sent_first = 0;
 /***********************************************************
 				private function declarations
 ***********************************************************/
@@ -93,9 +94,32 @@ extern void UC_SPI_init(void)
 	return;
 }
 
-extern void UC_SPI_sendByte(uint8_t data)
+extern void UC_SPI_send8BitData(uint8_t data)
 {
-	dataToSend = data;
+	if(dataWidth != UC_SPI_dataWidth8)
+	{
+		CLEAR_BIT(UC_SPI->CR1, SPI_CR1_SPE);
+		CLEAR_BIT(UC_SPI->CR1, SPI_CR1_DFF);
+		SET_BIT(UC_SPI->CR1, SPI_CR1_SPE);
+		dataWidth = UC_SPI_dataWidth8;
+	}
+	UC_GPIO_clearPin(UC_SPI_CS_PORT, UC_SPI_CS_PIN); // Set CS low
+	UC_SPI->DR = (uint16_t)data;
+	SET_BIT(UC_SPI->CR2, SPI_CR2_TXEIE); // Enable TXE Interrupt
+	return;
+}
+
+extern void UC_SPI_send16BitData(uint16_t data)
+{
+	if(dataWidth != UC_SPI_dataWidth16)
+	{
+		CLEAR_BIT(UC_SPI->CR1, SPI_CR1_SPE);
+		SET_BIT(UC_SPI->CR1, SPI_CR1_DFF);
+		SET_BIT(UC_SPI->CR1, SPI_CR1_SPE);
+		dataWidth = UC_SPI_dataWidth16;
+	}
+	UC_GPIO_clearPin(UC_SPI_CS_PORT, UC_SPI_CS_PIN); // Set CS low
+	UC_SPI->DR = data;
 	SET_BIT(UC_SPI->CR2, SPI_CR2_TXEIE); // Enable TXE Interrupt
 	return;
 }
@@ -106,19 +130,30 @@ extern void UC_SPI_sendByte(uint8_t data)
 void UC_SPI_ISR(void)
 {
 	OS_EnterNestableInterrupt();
-	if(READ_BIT(UC_SPI->SR, SPI_SR_RXNE) && READ_BIT(UC_SPI->CR2, SPI_CR2_RXNEIE))
-	{
-		CLEAR_BIT(UC_SPI->SR, SPI_SR_RXNE); // Clear interrupt flag
-		UC_GPIO_setPin(UC_SPI_CS_PORT, UC_SPI_CS_PIN); // Set CS high
-		//empty data register
-		(void)UC_SPI->DR;
-	}
+
 	if(READ_BIT(UC_SPI->SR, SPI_SR_TXE) && READ_BIT(UC_SPI->CR2, SPI_CR2_TXEIE)) // if tx buffer empty
 	{
+		if(dataWidth == UC_SPI_dataWidth16)
+		{
+			if(sent_first == 1)
+			{
+				UC_GPIO_setPin(UC_SPI_CS_PORT, UC_SPI_CS_PIN); // Set CS high
+				CLEAR_BIT(UC_SPI->CR2, SPI_CR2_TXEIE); // disable txe interrupt
+				sent_first = 0;
+			}
+			else
+			{
+				sent_first = 1;
+			}
+		}
+		else
+		{
+			UC_GPIO_setPin(UC_SPI_CS_PORT, UC_SPI_CS_PIN); // Set CS high
+			CLEAR_BIT(UC_SPI->CR2, SPI_CR2_TXEIE); // disable txe interrupt
+		}
+
+
 		CLEAR_BIT(UC_SPI->SR, SPI_SR_TXE); // Clear interrupt flag
-		CLEAR_BIT(UC_SPI->CR2, SPI_CR2_TXEIE); // disable txe interrupt
-		UC_GPIO_clearPin(UC_SPI_CS_PORT, UC_SPI_CS_PIN); // Set CS low
-		UC_SPI->DR = dataToSend;
 	}
 
 	OS_LeaveNestableInterrupt();

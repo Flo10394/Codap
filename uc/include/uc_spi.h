@@ -14,7 +14,8 @@
 
 extern void UC_SPI_init(void);
 
-extern void UC_SPI_sendByte(uint8_t data);
+extern void UC_SPI_send8BitData(uint8_t data);
+extern void UC_SPI_send16BitData(uint16_t data);
 
 
 #endif /* UC_INCLUDE_UC_SPI_H_ */
